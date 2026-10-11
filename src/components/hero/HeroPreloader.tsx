@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Sparkles } from 'lucide-react';
 
 interface HeroPreloaderProps {
   progress: number;
@@ -30,10 +29,6 @@ export default function HeroPreloader({ progress, isReady }: HeroPreloaderProps)
             transition={{ duration: 0.6 }}
             className="flex flex-col items-center text-center relative z-10 mb-8"
           >
-            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#ab4458]/40 to-[#d96677]/40 border border-[#d96677]/30 flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(217,102,119,0.3)] animate-pulse">
-              <Sparkles className="w-8 h-8 text-[#d96677]" />
-            </div>
-
             <h1 className="font-handwriting text-6xl md:text-8xl text-white drop-shadow-[0_4px_20px_rgba(217,102,119,0.4)] leading-none mb-3">
               Sect
             </h1>
