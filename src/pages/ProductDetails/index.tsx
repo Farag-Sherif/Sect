@@ -5,6 +5,7 @@ import { useStore } from '../../store/useStore';
 import { useMockData } from '../../data/mockData';
 import { Star, Heart, ShoppingBag, Minus, Plus, Truck, ShieldCheck, ChevronRight, ChevronLeft, Check, Play, Shield, Home } from 'lucide-react';
 import ProductCard from '../../components/products/ProductCard';
+import ProductReelModal from '../../components/products/ProductReelModal';
 import { useTranslation } from 'react-i18next';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination } from 'swiper/modules';
@@ -27,6 +28,7 @@ export default function ProductDetails() {
   const [selectedColor, setSelectedColor] = useState('bg-[#a0525f]');
   const [selectedSize, setSelectedSize] = useState('Medium');
   const [activeImage, setActiveImage] = useState(0);
+  const [isReelOpen, setIsReelOpen] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'details';
@@ -310,13 +312,20 @@ export default function ProductDetails() {
               </div>
               
               <div className="h-full min-h-[320px] order-3 lg:order-none w-full">
-                <div className="w-full h-full bg-black rounded-[32px] relative overflow-hidden group cursor-pointer shadow-md">
+                <div 
+                  onClick={() => setIsReelOpen(true)}
+                  className="w-full h-full bg-black rounded-[32px] relative overflow-hidden group cursor-pointer shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsReelOpen(true); }}
+                  aria-label="Watch Crafting Reel"
+                >
                   <img src="https://images.unsplash.com/photo-1622295627685-61011504ee84?auto=format&fit=crop&q=80&w=800" onError={(e) => { e.currentTarget.src = '/images/products/placeholder.jpg' }} alt="Video thumbnail" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700" />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20">
-                    <div className="flex items-center gap-4 backdrop-blur-sm bg-black/40 px-6 py-4 rounded-full border border-white/30 text-white group-hover:bg-[#a0525f] group-hover:border-[#a0525f] transition-all">
-                      <div className="w-10 h-10 rounded-full border border-white flex items-center justify-center rtl:pr-1 ltr:pl-1 group-hover:bg-white group-hover:text-[#a0525f] transition-colors"><Play className="w-4 h-4 fill-current" /></div>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/25 group-hover:bg-black/35 transition-colors">
+                    <div className="flex items-center gap-4 backdrop-blur-md bg-black/50 px-6 py-4 rounded-full border border-white/30 text-white group-hover:bg-[#a0525f] group-hover:border-[#a0525f] group-hover:scale-105 transition-all shadow-xl">
+                      <div className="w-10 h-10 rounded-full border border-white flex items-center justify-center rtl:pr-1 ltr:pl-1 group-hover:bg-white group-hover:text-[#a0525f] transition-colors shadow"><Play className="w-4 h-4 fill-current" /></div>
                       <div className="flex flex-col items-start text-start">
-                        <span className="font-bold text-sm">{'Watch Crafting Process'}</span>
+                        <span className="font-bold text-sm">{isAr ? 'شاهد خطوات الصنع' : 'Watch Crafting Process'}</span>
                         <span className="text-xs text-white/80">2:45 min</span>
                       </div>
                     </div>
@@ -433,6 +442,13 @@ export default function ProductDetails() {
           </div>
         </div>
 
+        {/* Product Crafting Reel Modal */}
+        <ProductReelModal
+          isOpen={isReelOpen}
+          onClose={() => setIsReelOpen(false)}
+          product={product}
+          videoSrc="/videos/crafting-reel.mp4"
+        />
       </div>
     </Layout>
   );
