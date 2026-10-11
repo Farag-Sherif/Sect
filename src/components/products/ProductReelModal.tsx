@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Heart, Share2, Volume2, VolumeX, Play, Pause, ShoppingBag, Check, Music2, Sparkles } from 'lucide-react';
+import { X, Share2, Volume2, VolumeX, Play, Pause, ShoppingBag, Check, Music2, Sparkles, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../../store/useStore';
 
@@ -30,8 +30,6 @@ export default function ProductReelModal({
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(1248);
   const [isCopied, setIsCopied] = useState(false);
   const [isAddedToCart, setIsAddedToCart] = useState(false);
   const [showPlayIcon, setShowPlayIcon] = useState(false);
@@ -95,23 +93,52 @@ export default function ProductReelModal({
     setProgress((current / duration) * 100);
   };
 
-  const handleLike = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsLiked(prev => !prev);
-    setLikeCount(prev => (isLiked ? prev - 1 : prev + 1));
-  };
-
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('reel', 'true');
+    const shareUrl = currentUrl.toString();
+
+    const doCopy = () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          setIsCopied(true);
+          setTimeout(() => setIsCopied(false), 2500);
+        }).catch(() => {
+          fallbackCopy(shareUrl);
+        });
+      } else {
+        fallbackCopy(shareUrl);
+      }
+    };
+
+    const fallbackCopy = (text: string) => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2500);
+      } catch (err) {
+        console.error('Failed to copy link', err);
+      }
+      document.body.removeChild(ta);
+    };
+
     if (navigator.share) {
       navigator.share({
-        title: product?.name || 'Sect Handmade Craft',
-        url: window.location.href
-      }).catch(() => {});
+        title: product?.name ? `${product.name} | Sect Crafting Reel` : 'Sect Handmade Craft Reel',
+        text: isAr ? `شاهد فيديو صناعة ${product?.name || 'المنتج'} في متجر سكت 🌸` : `Watch how ${product?.name || 'this piece'} is handcrafted at Sect 🌸`,
+        url: shareUrl
+      }).catch(() => {
+        doCopy();
+      });
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+      doCopy();
     }
   };
 
@@ -201,56 +228,27 @@ export default function ProductReelModal({
             </button>
           </div>
 
-          {/* Right Floating Actions (Reels Style) */}
-          <div className="absolute end-3 sm:end-4 bottom-32 z-30 flex flex-col items-center gap-4 pointer-events-auto">
-            {/* Artisan Avatar */}
-            <div className="relative group cursor-pointer">
-              <div className="w-11 h-11 rounded-full p-0.5 bg-gradient-to-tr from-[#d96677] to-[#ab4458] shadow-lg">
-                <img
-                  src="/images/backgrounds/products-hero.png"
-                  alt="Sect Artisan"
-                  className="w-full h-full rounded-full object-cover border border-black"
-                />
-              </div>
-              <div className="absolute -bottom-1.5 inset-x-0 flex justify-center">
-                <div className="w-4 h-4 rounded-full bg-[#d96677] text-white flex items-center justify-center text-[10px] font-bold shadow">
-                  +
-                </div>
-              </div>
-            </div>
-
-            {/* Like Button */}
-            <div className="flex flex-col items-center">
-              <button
-                onClick={handleLike}
-                className={`w-11 h-11 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center transition-all border border-white/20 active:scale-125 shadow-lg ${
-                  isLiked ? 'text-red-500 bg-red-500/20 border-red-500/40' : 'text-white hover:bg-black/60'
-                }`}
-              >
-                <Heart className={`w-6 h-6 ${isLiked ? 'fill-current stroke-current scale-110' : 'stroke-[2]'}`} />
-              </button>
-              <span className="text-white text-[11px] font-bold mt-1 drop-shadow-md">
-                {likeCount.toLocaleString()}
-              </span>
-            </div>
-
+          {/* Right Floating Actions (Reels Style) - Only Share Button */}
+          <div className="absolute end-3 sm:end-4 bottom-28 z-30 flex flex-col items-center pointer-events-auto">
             {/* Share Button */}
             <div className="flex flex-col items-center relative">
               <button
                 onClick={handleShare}
-                className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/60 transition-all border border-white/20 active:scale-110 shadow-lg"
-                title={isAr ? 'مشاركة' : 'Share'}
+                className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center hover:bg-[#d96677] transition-all border border-white/25 active:scale-110 shadow-xl group"
+                title={isAr ? 'مشاركة رابط الفيديو' : 'Share Video Link'}
+                aria-label={isAr ? 'مشاركة رابط الفيديو' : 'Share Video Link'}
               >
-                <Share2 className="w-5 h-5 stroke-[2]" />
+                <Share2 className="w-5 h-5 stroke-[2] group-hover:scale-110 transition-transform" />
               </button>
-              <span className="text-white text-[11px] font-bold mt-1 drop-shadow-md">
+              <span className="text-white text-[11px] font-bold mt-1.5 drop-shadow-md">
                 {isAr ? 'مشاركة' : 'Share'}
               </span>
 
               {/* Copied Tooltip */}
               {isCopied && (
-                <div className="absolute -top-8 end-0 whitespace-nowrap bg-white text-[#4a1c24] text-[11px] font-bold py-1 px-2.5 rounded-lg shadow-xl animate-bounce">
-                  {isAr ? 'تم النسخ! ✓' : 'Copied! ✓'}
+                <div className="absolute -top-10 end-0 whitespace-nowrap bg-emerald-600 text-white text-[11px] font-bold py-1.5 px-3 rounded-xl shadow-2xl flex items-center gap-1.5 animate-bounce z-50">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>{isAr ? 'تم نسخ الرابط! ✓' : 'Link Copied! ✓'}</span>
                 </div>
               )}
             </div>

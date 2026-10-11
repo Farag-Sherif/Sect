@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import Layout from '../../components/layout/Layout';
 import { useStore } from '../../store/useStore';
@@ -28,9 +28,24 @@ export default function ProductDetails() {
   const [selectedColor, setSelectedColor] = useState('bg-[#a0525f]');
   const [selectedSize, setSelectedSize] = useState('Medium');
   const [activeImage, setActiveImage] = useState(0);
-  const [isReelOpen, setIsReelOpen] = useState(false);
-
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isReelOpen, setIsReelOpen] = useState(searchParams.get('reel') === 'true' || searchParams.get('reel') === '1');
+
+  useEffect(() => {
+    if (searchParams.get('reel') === 'true' || searchParams.get('reel') === '1') {
+      setIsReelOpen(true);
+    }
+  }, [searchParams]);
+
+  const handleCloseReel = () => {
+    setIsReelOpen(false);
+    if (searchParams.get('reel')) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('reel');
+      setSearchParams(newParams, { replace: true });
+    }
+  };
+
   const activeTab = searchParams.get('tab') || 'details';
   const setActiveTab = (tab: string) => setSearchParams({ tab }, { replace: true });
 
@@ -445,7 +460,7 @@ export default function ProductDetails() {
         {/* Product Crafting Reel Modal */}
         <ProductReelModal
           isOpen={isReelOpen}
-          onClose={() => setIsReelOpen(false)}
+          onClose={handleCloseReel}
           product={product}
           videoSrc="/videos/crafting-reel.mp4"
         />
