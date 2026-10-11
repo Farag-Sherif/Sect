@@ -1,15 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useScroll, useTransform, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { ShieldCheck, Truck, Gift, Leaf, Package } from 'lucide-react';
 import { useMockData } from '../../data/mockData';
+import HeroPreloader from './HeroPreloader';
 
 const FRAME_COUNT = 744;
 const START_FRAME = 217;
+const INITIAL_PRELOAD_COUNT = 80;
 
 const getFramePath = (index: number) => 
-  `/images/hero bg/${(index + START_FRAME).toString().padStart(5, '0')}.jpg`;
+  `/images/hero bg/${(index + START_FRAME).toString().padStart(5, '0')}.webp`;
 
 const getIcon = (name: string) => {
   const className = "w-6 h-6 md:w-8 md:h-8 text-[#d96677] mb-3";
@@ -29,6 +31,9 @@ export default function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imagesRef = useRef<(HTMLImageElement | null)[]>(new Array(FRAME_COUNT).fill(null));
+
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [isReady, setIsReady] = useState(false);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -55,7 +60,7 @@ export default function Hero() {
       const safeIndex = Math.max(0, Math.min(FRAME_COUNT - 1, index));
       const img = imagesRef.current[safeIndex];
       
-      if (img && img.complete) {
+      if (img && img.complete && img.naturalWidth > 0) {
         const canvasRatio = canvas.width / canvas.height;
         const imgRatio = img.width / img.height;
         let drawWidth, drawHeight, offsetX, offsetY;
@@ -78,9 +83,64 @@ export default function Hero() {
       }
     };
 
-    const preloadFrames = (startIndex: number) => {
+    // 1. Initial critical preload with progress tracking
+    let loadedCount = 0;
+    const handleInitialLoad = (idx: number) => {
+      loadedCount++;
+      setLoadProgress((loadedCount / INITIAL_PRELOAD_COUNT) * 100);
+      if (idx === 0) {
+        renderFrame(0);
+      }
+      if (loadedCount >= INITIAL_PRELOAD_COUNT) {
+        setIsReady(true);
+        renderFrame(0);
+        preloadRemainingFrames();
+      }
+    };
+
+    for (let i = 0; i < INITIAL_PRELOAD_COUNT; i++) {
+      if (!imagesRef.current[i]) {
+        const img = new Image();
+        img.src = getFramePath(i);
+        img.onload = () => handleInitialLoad(i);
+        img.onerror = () => handleInitialLoad(i);
+        imagesRef.current[i] = img;
+      }
+    }
+
+    // Safety fallback so site is never stuck
+    const fallbackTimer = setTimeout(() => {
+      setIsReady(true);
+      renderFrame(Math.floor(frameIndex.get()));
+      preloadRemainingFrames();
+    }, 4500);
+
+    const preloadRemainingFrames = () => {
+      let nextIndex = INITIAL_PRELOAD_COUNT;
+      const batchSize = 35;
+
+      const loadNextBatch = () => {
+        if (nextIndex >= FRAME_COUNT) return;
+        const end = Math.min(FRAME_COUNT, nextIndex + batchSize);
+        for (let i = nextIndex; i < end; i++) {
+          if (!imagesRef.current[i]) {
+            const img = new Image();
+            img.src = getFramePath(i);
+            imagesRef.current[i] = img;
+          }
+        }
+        nextIndex = end;
+        if (nextIndex < FRAME_COUNT) {
+          setTimeout(loadNextBatch, 80);
+        }
+      };
+
+      loadNextBatch();
+    };
+
+    const preloadFramesAround = (targetIndex: number) => {
       const lookAhead = 40; 
-      for (let i = startIndex; i < Math.min(FRAME_COUNT, startIndex + lookAhead); i++) {
+      for (let i = targetIndex; i < Math.min(FRAME_COUNT, targetIndex + lookAhead); i++) {
         if (!imagesRef.current[i]) {
           const img = new Image();
           img.src = getFramePath(i);
@@ -92,11 +152,9 @@ export default function Hero() {
       }
     };
 
-    preloadFrames(0);
-
     const updateCanvas = () => {
        const index = Math.floor(frameIndex.get());
-       preloadFrames(index);
+       preloadFramesAround(index);
        if (index !== currentRenderedIndex) {
           renderFrame(index);
        }
@@ -115,6 +173,7 @@ export default function Hero() {
     handleResize();
 
     return () => {
+      clearTimeout(fallbackTimer);
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
     };
@@ -141,7 +200,9 @@ export default function Hero() {
   const pe5 = useTransform(op5, v => v > 0.5 ? "auto" : "none");
 
   return (
-    <section ref={containerRef} className="relative h-[1200vh] bg-[#1a0a13]">
+    <>
+      <HeroPreloader progress={loadProgress} isReady={isReady} />
+      <section ref={containerRef} className="relative h-[1200vh] bg-[#1a0a13]">
       <div className="sticky top-0 w-full h-screen overflow-hidden">
         
         {/* Canvas Background */}
@@ -292,5 +353,6 @@ export default function Hero() {
         </div>
       </div>
     </section>
-  );
+  </>
+);
 }

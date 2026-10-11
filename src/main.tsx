@@ -17,9 +17,12 @@ const Journal = lazy(() => import('./pages/Journal'));
 const Favorites = lazy(() => import('./pages/Favorites'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 
+import ScrollToTop from './components/common/ScrollToTop';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
+      <ScrollToTop />
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-brand-pink font-arabic font-bold text-2xl">...</div>}>
         <Routes>
           <Route path="/" element={<Home />} />
