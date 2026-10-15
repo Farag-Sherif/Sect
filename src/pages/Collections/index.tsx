@@ -1,32 +1,45 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, useNavigate } from 'react-router';
 import { StaggerContainer, StaggerItem } from '../../components/ui/Stagger';
-import { ArrowRight, ChevronDown, Grid, ShoppingBag, Home, Watch, Smile, Key, Square, Gift, Heart, ShieldCheck, Truck, Star } from 'lucide-react';
+import CustomSelect from '../../components/ui/CustomSelect';
+import { ArrowRight, ChevronDown, Grid, ShoppingBag, Home, Gem, Star, Key, Square, Gift, Sun, Heart, Loader2 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/footer/Footer';
+import { categoriesService } from '../../api/services';
+import type { ApiCategory } from '../../api/types';
 
-const collections = [
-  { id: 1, titleKey: "catBags", img: "/images/backgrounds/collections-hero.jpg", count: 24, icon: ShoppingBag },
-  { id: 2, titleKey: "catHome", img: "/images/backgrounds/about-hero.jpg", count: 18, icon: Home },
-  { id: 3, titleKey: "catAccessories", img: "/images/backgrounds/cart-hero.jpg", count: 32, icon: Watch },
-  { id: 4, titleKey: "catToys", img: "/images/backgrounds/collections-hero.jpg", count: 16, icon: Smile },
-  { id: 5, titleKey: "catKeychains", img: "/images/backgrounds/about-hero.jpg", count: 12, icon: Key },
-  { id: 6, titleKey: "catBlankets", img: "/images/backgrounds/cart-hero.jpg", count: 10, icon: Square },
-  { id: 7, titleKey: "catGiftSets", img: "/images/backgrounds/collections-hero.jpg", count: 8, icon: Gift },
-  { id: 8, titleKey: "catAll", img: "/images/backgrounds/about-hero.jpg", count: 14, icon: Star, overrideTitle: "Seasonal" },
-];
+const getCategoryIcon = (iconName?: string | null) => {
+  switch (iconName?.toLowerCase()) {
+    case 'bag':
+    case 'bags':
+      return ShoppingBag;
+    case 'home':
+      return Home;
+    case 'gem':
+    case 'accessories':
+      return Gem;
+    case 'star':
+    case 'toys':
+      return Star;
+    case 'key':
+    case 'keychains':
+      return Key;
+    case 'moon':
+    case 'blankets':
+      return Square;
+    case 'gift':
+    case 'gifts':
+      return Gift;
+    case 'sun':
+    case 'seasonal':
+      return Sun;
+    default:
+      return Gift;
+  }
+};
 
-const categories = [
-  { id: "all", titleKey: "catAll", icon: Grid },
-  { id: "bags", titleKey: "catBags", icon: ShoppingBag },
-  { id: "home", titleKey: "catHome", icon: Home },
-  { id: "accessories", titleKey: "catAccessories", icon: Watch },
-  { id: "toys", titleKey: "catToys", icon: Smile },
-  { id: "keychains", titleKey: "catKeychains", icon: Key },
-  { id: "blankets", titleKey: "catBlankets", icon: Square },
-  { id: "gifts", titleKey: "catGiftSets", icon: Gift },
-];
+import ProductImage from '../../components/ui/ProductImage';
 
 export default function Collections() {
   const { t, i18n } = useTranslation();
@@ -36,27 +49,43 @@ export default function Collections() {
   const activeCat = searchParams.get('category') || 'all';
   const currentSort = searchParams.get('sort') || 'featured';
 
-  const filteredCollections = collections.filter(item => {
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    categoriesService.getCategories()
+      .then(data => {
+        if (isMounted) {
+          setCategories(data);
+          setLoading(false);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load categories:', err);
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, [i18n.language]);
+
+  const filteredCategories = categories.filter(item => {
     if (activeCat === 'all') return true;
-    return item.titleKey.toLowerCase().includes(activeCat.toLowerCase());
+    return item.slug === activeCat;
   });
 
-  const sortedCollections = [...filteredCollections].sort((a, b) => {
+  const sortedCategories = [...filteredCategories].sort((a, b) => {
     if (currentSort === 'count_desc') {
-      return b.count - a.count;
+      return (b.products_count || 0) - (a.products_count || 0);
     }
     if (currentSort === 'count_asc') {
-      return a.count - b.count;
+      return (a.products_count || 0) - (b.products_count || 0);
     }
     if (currentSort === 'name_asc') {
-      const nameA = a.overrideTitle || t(`collections.${a.titleKey}`).replace('\n', ' ');
-      const nameB = b.overrideTitle || t(`collections.${b.titleKey}`).replace('\n', ' ');
-      return nameA.localeCompare(nameB, i18n.language);
+      return a.name.localeCompare(b.name, i18n.language);
     }
     if (currentSort === 'name_desc') {
-      const nameA = a.overrideTitle || t(`collections.${a.titleKey}`).replace('\n', ' ');
-      const nameB = b.overrideTitle || t(`collections.${b.titleKey}`).replace('\n', ' ');
-      return nameB.localeCompare(nameA, i18n.language);
+      return b.name.localeCompare(a.name, i18n.language);
     }
     return a.id - b.id;
   });
@@ -66,11 +95,11 @@ export default function Collections() {
       <Header />
       
       <main className="flex-1 pt-[76px] md:pt-[92px]">
-                        {/* Hero Section */}
+        {/* Hero Section */}
         <div className="relative min-h-[450px] md:min-h-[500px] flex items-center overflow-hidden bg-[#fffaf8]">
           <div className="absolute inset-0 z-0">
             <img 
-              src="/images/backgrounds/products-hero.png" 
+              src="/images/backgrounds/products-hero.webp" 
               alt="Background"
               className="w-full h-full object-cover object-center rtl:scale-x-[-1]"
             />
@@ -91,15 +120,12 @@ export default function Collections() {
               <p className="text-[#4a1c24]/80 text-base md:text-lg leading-relaxed max-w-lg font-medium mb-8">
                 {t('collections.heroDesc')}
               </p>
-              
             </div>
             
             <div className="absolute top-1/4 ltr:right-16 rtl:left-16 rotate-[-12deg] font-handwriting text-white text-3xl md:text-4xl ltr:text-right rtl:text-left drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] hidden md:block">
               Handmade <br/> 
               with love <br/>
-              <svg className="w-6 h-6 inline-block mt-2 opacity-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
+              <Heart className="w-6 h-6 inline-block mt-2 opacity-90 fill-current" />
             </div>
           </div>
           
@@ -110,24 +136,38 @@ export default function Collections() {
           </div>
         </div>
 
-        {/* Categories Bar */}
-        <div className="relative -mt-16 z-50 max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-16 mb-16">
-          <div className="bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.06)] p-3 md:p-6 flex items-center justify-between overflow-x-auto gap-4 hide-scrollbar">
-            {categories.map(cat => {
-              const Icon = cat.icon;
-              const isActive = activeCat === cat.id;
+        {/* Navigation / Filter Bar */}
+        <div className="border-b border-[#EACBD0]/40 bg-white sticky top-[76px] md:top-[92px] z-30 shadow-xs">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-16 py-4 flex items-center gap-4 overflow-x-auto hide-scrollbar">
+            <button 
+              onClick={() => setSearchParams(prev => {
+                const next = new URLSearchParams(prev);
+                next.set('category', 'all');
+                return next;
+              })}
+              className={`flex flex-col items-center justify-center min-w-[100px] md:min-w-[120px] p-4 rounded-xl transition-all cursor-pointer ${activeCat === 'all' ? 'bg-[#9A3B50] text-white shadow-md' : 'hover:bg-[#FDF5F6] text-text-light hover:text-primary'}`}
+            >
+              <Grid className={`w-6 h-6 mb-2 ${activeCat === 'all' ? 'text-white' : 'text-[#9A3B50]'}`} strokeWidth={1.5} />
+              <span className={`text-xs md:text-sm font-bold text-center ${activeCat === 'all' ? 'text-white' : 'text-text-dark'}`}>
+                {isRTL ? 'الكل' : 'All'}
+              </span>
+            </button>
+
+            {categories.map((cat) => {
+              const Icon = getCategoryIcon(cat.icon);
+              const isActive = activeCat === cat.slug;
               return (
                 <button 
                   key={cat.id}
                   onClick={() => setSearchParams(prev => {
                     const next = new URLSearchParams(prev);
-                    next.set('category', cat.id);
+                    next.set('category', cat.slug);
                     return next;
                   })}
-                  className={`flex flex-col items-center justify-center min-w-[100px] md:min-w-[120px] p-4 rounded-xl transition-all ${isActive ? 'bg-[#9A3B50] text-white shadow-md' : 'hover:bg-[#FDF5F6] text-text-light hover:text-primary'}`}
+                  className={`flex flex-col items-center justify-center min-w-[100px] md:min-w-[120px] p-4 rounded-xl transition-all cursor-pointer ${isActive ? 'bg-[#9A3B50] text-white shadow-md' : 'hover:bg-[#FDF5F6] text-text-light hover:text-primary'}`}
                 >
                   <Icon className={`w-6 h-6 mb-2 ${isActive ? 'text-white' : 'text-[#9A3B50]'}`} strokeWidth={1.5} />
-                  <span className={`text-xs md:text-sm font-bold text-center whitespace-pre-line ${isActive ? 'text-white' : 'text-text-dark'}`}>{t(`collections.${cat.titleKey}`)}</span>
+                  <span className={`text-xs md:text-sm font-bold text-center truncate max-w-[100px] ${isActive ? 'text-white' : 'text-text-dark'}`}>{cat.name}</span>
                 </button>
               );
             })}
@@ -145,173 +185,116 @@ export default function Collections() {
                 <p className="text-text-light">{t('collections.allCollectionsDesc')}</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-text-light">{t('collections.sortBy') || 'Sort by:'}</span>
-                <div className="relative">
-                  <select
+                <span className="text-sm text-text-light shrink-0">{t('collections.sortBy') || 'Sort by:'}</span>
+                <div className="w-[180px]">
+                  <CustomSelect
                     value={currentSort}
-                    onChange={(e) => setSearchParams(prev => {
+                    onChange={(val) => setSearchParams(prev => {
                       const next = new URLSearchParams(prev);
-                      next.set('sort', e.target.value);
+                      next.set('sort', val);
                       return next;
                     })}
-                    className="appearance-none bg-[#FCF8F9] px-4 py-2 rounded-lg text-sm font-bold text-text-dark hover:bg-[#FDF5F6] transition-colors border border-[#EACBD0]/60 outline-none focus:border-[#9A3B50] cursor-pointer shadow-sm ltr:pr-9 rtl:pl-9 ltr:pl-4 rtl:pr-4 min-w-[150px]"
-                  >
-                    <option value="featured">{t('collections.sortFeatured') || 'Featured'}</option>
-                    <option value="count_desc">{t('collections.sortCountDesc') || 'Most Products'}</option>
-                    <option value="count_asc">{t('collections.sortCountAsc') || 'Least Products'}</option>
-                    <option value="name_asc">{t('collections.sortNameAsc') || 'Name: A to Z'}</option>
-                    <option value="name_desc">{t('collections.sortNameDesc') || 'Name: Z to A'}</option>
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-text-dark absolute ltr:right-3 rtl:left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    options={[
+                      { value: 'featured', label: t('collections.sortFeatured') || 'Featured' },
+                      { value: 'count_desc', label: t('collections.sortCountDesc') || 'Most Products' },
+                      { value: 'count_asc', label: t('collections.sortCountAsc') || 'Least Products' },
+                      { value: 'name_asc', label: t('collections.sortNameAsc') || 'Name: A to Z' },
+                      { value: 'name_desc', label: t('collections.sortNameDesc') || 'Name: Z to A' },
+                    ]}
+                    size="sm"
+                    variant="subtle"
+                  />
                 </div>
               </div>
             </div>
 
             {/* Grid */}
-            <StaggerContainer key={`${activeCat}-${currentSort}`} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {sortedCollections.map((item) => {
-                const categorySlug = item.titleKey === 'catAll' ? 'season' : item.titleKey.replace('cat', '').toLowerCase();
-                return (
-                  <StaggerItem 
-                    key={item.id} 
-                    className="group cursor-pointer"
-                    onClick={() => navigate(`/products?category=${categorySlug}`)}
-                  >
-                    <div className="relative rounded-2xl overflow-hidden shadow-sm aspect-[4/3] mb-4">
-                      <img src={item.img} alt="Collection" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                      <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors"></div>
-                    </div>
-                    
-                    <div className={`relative -mt-10 mx-4 bg-white rounded-xl p-4 flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.06)] group-hover:-translate-y-1 transition-transform duration-300`}>
-                      <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-full bg-[#FCF8F9] flex items-center justify-center text-[#9A3B50]">
-                           <item.icon className="w-5 h-5" strokeWidth={1.5} />
-                         </div>
-                         <div>
-                           <h3 className="font-bold text-text-dark text-sm">{item.overrideTitle || t(`collections.${item.titleKey}`).replace('\n', ' ')}</h3>
-                           <p className="text-xs text-text-light">{item.count} {t('collections.productsCount')}</p>
-                         </div>
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-[#9A3B50]">
+                <Loader2 className="w-10 h-10 animate-spin mb-4" />
+                <p className="text-sm font-bold">{isRTL ? 'جاري تحميل المجموعات...' : 'Loading collections...'}</p>
+              </div>
+            ) : (
+              <StaggerContainer key={`${activeCat}-${currentSort}`} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {sortedCategories.map((item) => {
+                  const Icon = getCategoryIcon(item.icon);
+
+                  return (
+                    <StaggerItem 
+                      key={item.id} 
+                      className="group cursor-pointer"
+                      onClick={() => navigate(`/products?category=${item.slug}`)}
+                    >
+                      <div className="relative rounded-2xl overflow-hidden shadow-sm aspect-[4/3] mb-4 bg-[#fdf5f6]">
+                        <ProductImage 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                          icon="sparkles"
+                          label={item.name}
+                        />
+                        <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors pointer-events-none"></div>
                       </div>
-                      <div className="w-8 h-8 rounded-full border border-[#EACBD0] flex items-center justify-center text-[#9A3B50] group-hover:bg-[#9A3B50] group-hover:text-white transition-colors">
-                        <ArrowRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                      
+                      <div className="relative -mt-10 mx-4 bg-white rounded-xl p-4 flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.06)] group-hover:-translate-y-1 transition-transform duration-300">
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 rounded-full bg-[#FCF8F9] flex items-center justify-center text-[#9A3B50]">
+                             <Icon className="w-5 h-5" strokeWidth={1.5} />
+                           </div>
+                           <div>
+                             <h3 className="font-bold text-text-dark text-sm truncate max-w-[130px]">{item.name}</h3>
+                             <p className="text-xs text-text-light">{item.products_count ?? 0} {t('collections.productsCount')}</p>
+                           </div>
+                        </div>
+                        <div className="w-8 h-8 rounded-full border border-[#EACBD0] flex items-center justify-center text-[#9A3B50] group-hover:bg-[#9A3B50] group-hover:text-white transition-colors shrink-0">
+                          <ArrowRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                        </div>
                       </div>
-                    </div>
-                  </StaggerItem>
-                );
-              })}
-            </StaggerContainer>
+                    </StaggerItem>
+                  );
+                })}
+              </StaggerContainer>
+            )}
 
           </div>
         </section>
 
         {/* Promo Banner */}
         <section className="py-20 relative bg-[#FDF5F6] border-y border-[#f5ebeb] mt-16 overflow-hidden">
-           {/* Background decorations */}
            <div className="absolute top-0 ltr:left-0 rtl:right-0 w-64 h-64 pointer-events-none opacity-40">
-             <img src="/images/decorations/floral.png" className={`w-full h-full object-cover ${isRTL ? 'scale-x-[-1]' : ''}`} style={{ filter: 'brightness(0) saturate(100%) invert(35%) sepia(85%) saturate(306%) hue-rotate(314deg) brightness(85%) contrast(85%)' }} alt="" />
+             <img src="/images/decorations/floral.webp" className={`w-full h-full object-cover ${isRTL ? 'scale-x-[-1]' : ''}`} style={{ filter: 'brightness(0) saturate(100%) invert(35%) sepia(85%) saturate(306%) hue-rotate(314deg) brightness(85%) contrast(85%)' }} alt="" />
            </div>
            
            <div className="max-w-[1200px] mx-auto px-4 sm:px-8 relative z-10">
              <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16 justify-between">
                  
-                 {/* Text Content */}
                  <div className="lg:w-1/2">
                    <h2 className="text-4xl md:text-5xl font-serif font-bold text-[#4a1c24] mb-6 leading-tight whitespace-pre-line text-center lg:ltr:text-left lg:rtl:text-right">
-                     {t('collections.promoTitle')} <span className="font-handwriting text-[#913b4c] inline-block rtl:mr-3 ltr:ml-3 text-4xl">{isRTL ? "؟" : "?"}</span>
+                     {t('collections.promoTitle')} <span className="font-handwriting text-[#913b4c] inline-block rtl:mr-3 ltr:ml-3 text-4xl">{isRTL ? "♡" : "♡"}</span>
                    </h2>
-                   <p className="text-[#4a1c24]/70 text-[15px] leading-relaxed mb-8 max-w-md font-medium text-center lg:ltr:text-left lg:rtl:text-right mx-auto lg:mx-0">
+                   <p className="text-[#4a1c24]/70 mb-8 leading-relaxed text-sm md:text-base text-center lg:ltr:text-left lg:rtl:text-right">
                      {t('collections.promoDesc')}
                    </p>
-                   <button className="bg-[#913b4c] hover:bg-[#7a3140] text-white font-bold py-3.5 px-8 rounded-full shadow-md transition-all flex items-center justify-center gap-2 mx-auto lg:mx-0 w-max">
-                     {t('collections.exploreStory')}
-                     <ArrowRight className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
-                   </button>
-                 </div>
-  
-                 {/* Images Collage */}
-                 <div className="lg:w-1/2 relative flex justify-center lg:ltr:justify-end lg:rtl:justify-start mt-12 lg:mt-0">
-                   <div className="relative w-full max-w-[400px]">
-                     {/* Big Image */}
-                     <img src="/images/backgrounds/collections-hero.jpg" alt="Promo Bag" className="w-full h-auto rounded-[2rem] shadow-xl object-cover relative z-10" />
-                     
-                     {/* Polaroid Overlapping */}
-                     <div className={`absolute top-1/2 -translate-y-1/2 ltr:-right-16 rtl:-left-16 w-52 bg-white p-3 pb-8 shadow-2xl rounded-sm transform transition-transform ${isRTL ? '-rotate-[6deg]' : 'rotate-[6deg]'} hover:rotate-0 z-20 border border-gray-100`}>
-                       {/* Tape */}
-                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-5 bg-[#d1bfae]/60 transform -rotate-3 backdrop-blur-sm z-30"></div>
-                       
-                       <img src="/images/backgrounds/collections-hero.jpg" alt="Artisans" className="w-full h-36 object-cover mb-4" />
-                       
-                       <div className="text-center flex flex-col items-center">
-                         <span className="font-handwriting text-[#d96677] text-2xl leading-none mb-2">{isRTL ? 'أيادي مبدعة' : 'Real hands'}</span>
-                         <span className="font-handwriting text-[#913b4c] text-lg flex items-center justify-center gap-1">{isRTL ? 'وقصص حقيقية' : 'Real stories'} <span>{isRTL ? "؟" : "?"}</span></span>
-                       </div>
-                     </div>
+                   <div className="flex justify-center lg:justify-start">
+                     <button onClick={() => navigate('/products')} className="bg-[#9A3B50] hover:bg-[#833244] text-white font-bold py-3.5 px-8 rounded-full shadow-md transition-all flex items-center gap-2 cursor-pointer">
+                       {t('collections.promoBtn', isRTL ? 'استكشف منتجاتنا' : 'Explore Our Products')}
+                       <ArrowRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                     </button>
                    </div>
                  </div>
-  
-               </div>
+
+                 <div className="lg:w-1/2 flex justify-center">
+                   <div className="relative w-72 h-80 sm:w-80 sm:h-96 rounded-2xl overflow-hidden shadow-xl border-4 border-white rotate-2 hover:rotate-0 transition-transform duration-500">
+                     <img 
+                       src="/images/backgrounds/collections-hero.jpg" 
+                       alt="Handmade collection gift" 
+                       className="w-full h-full object-cover"
+                     />
+                   </div>
+                 </div>
+
              </div>
-          </section>
-
-        {/* Features Footer */}
-        <section className="py-20 bg-white">
-          <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-16">
-            <div className="flex flex-col lg:flex-row gap-12 items-center">
-              
-              <div className="lg:w-1/4">
-                <h2 className="text-3xl font-serif font-bold text-text-dark mb-3 whitespace-pre-line">
-                  {t('collections.whyTitle')}
-                </h2>
-                <p className="text-text-light text-sm">
-                  {t('collections.whyDesc')}
-                </p>
-              </div>
-
-              <div className="lg:w-3/4 grid grid-cols-2 lg:grid-cols-4 gap-6">
-                
-                <div className="flex flex-col gap-3">
-                  <div className="w-12 h-12 rounded-full bg-[#FCF8F9] flex items-center justify-center text-[#9A3B50]">
-                    <Heart className="w-6 h-6" strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-text-dark text-sm">{t('collections.why1Title')}</h4>
-                    <p className="text-xs text-text-light leading-relaxed">{t('collections.why1Desc')}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <div className="w-12 h-12 rounded-full bg-[#FCF8F9] flex items-center justify-center text-[#9A3B50]">
-                    <ShieldCheck className="w-6 h-6" strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-text-dark text-sm">{t('collections.why2Title')}</h4>
-                    <p className="text-xs text-text-light leading-relaxed">{t('collections.why2Desc')}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <div className="w-12 h-12 rounded-full bg-[#FCF8F9] flex items-center justify-center text-[#9A3B50]">
-                    <Truck className="w-6 h-6" strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-text-dark text-sm">{t('collections.why3Title')}</h4>
-                    <p className="text-xs text-text-light leading-relaxed">{t('collections.why3Desc')}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <div className="w-12 h-12 rounded-full bg-[#FCF8F9] flex items-center justify-center text-[#9A3B50]">
-                    <ShieldCheck className="w-6 h-6" strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-text-dark text-sm">{t('collections.why4Title')}</h4>
-                    <p className="text-xs text-text-light leading-relaxed">{t('collections.why4Desc')}</p>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </div>
+           </div>
         </section>
 
       </main>
@@ -320,4 +303,3 @@ export default function Collections() {
     </div>
   );
 }
-

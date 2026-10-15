@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff8f9" />
+      <stop offset="50%" stop-color="#faeff2" />
+      <stop offset="100%" stop-color="#fcf4f6" />
+    </linearGradient>
+    <linearGradient id="rose" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d96677" />
+      <stop offset="100%" stop-color="#a0525f" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="600" height="600" fill="url(#bg)" />
+  
+  <!-- Subtle circular ornament -->
+  <circle cx="300" cy="270" r="110" fill="#ffffff" opacity="0.8" stroke="#f0d5db" stroke-width="2" />
+  
+  <!-- Handmade / Package Icon -->
+  <g transform="translate(260, 230)" fill="none" stroke="url(#rose)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M40 5 L75 22 L75 62 L40 78 L5 62 L5 22 Z" />
+    <path d="M40 5 L40 78" />
+    <path d="M5 22 L40 40 L75 22" />
+    <path d="M22 13.5 L58 31" />
+  </g>
+  
+  <!-- Brand Text -->
+  <text x="300" y="420" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#4a1c24" text-anchor="middle" letter-spacing="3">
+    SECT HANDMADE
+  </text>
+  
+  <text x="300" y="455" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="500" fill="#d96677" text-anchor="middle" opacity="0.85">
+    ♡ صنع يدوي بحب
+  </text>
+</svg>

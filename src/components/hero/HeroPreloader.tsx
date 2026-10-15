@@ -1,14 +1,34 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
+import { Sparkles, ArrowRight } from 'lucide-react';
 
-interface HeroPreloaderProps {
+export interface HeroPreloaderProps {
   progress: number;
+  loadedCount?: number;
+  totalCount?: number;
   isReady: boolean;
+  onSkip?: () => void;
 }
 
-export default function HeroPreloader({ progress, isReady }: HeroPreloaderProps) {
+export default function HeroPreloader({ 
+  progress, 
+  loadedCount = 0, 
+  totalCount = 100, 
+  isReady,
+  onSkip 
+}: HeroPreloaderProps) {
   const { i18n } = useTranslation();
   const isAr = i18n.language === 'ar';
+  const [showSkip, setShowSkip] = useState(false);
+
+  // Show skip escape hatch after 4 seconds so users on slow connections are never trapped
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSkip(true);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <AnimatePresence>
@@ -38,7 +58,7 @@ export default function HeroPreloader({ progress, isReady }: HeroPreloaderProps)
           </motion.div>
 
           {/* Progress Bar Container */}
-          <div className="relative z-10 w-72 max-w-[85vw] flex flex-col items-center">
+          <div className="relative z-10 w-80 max-w-[85vw] flex flex-col items-center">
             <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/10 shadow-inner mb-3">
               <motion.div
                 className="h-full bg-gradient-to-r from-[#ab4458] to-[#d96677] rounded-full shadow-[0_0_15px_rgba(217,102,119,0.8)]"
@@ -48,8 +68,8 @@ export default function HeroPreloader({ progress, isReady }: HeroPreloaderProps)
               />
             </div>
 
-            {/* Labels & Percentage */}
-            <div className="w-full flex items-center justify-between text-xs text-white/60 font-medium">
+            {/* Labels & Detailed Frame Count */}
+            <div className="w-full flex items-center justify-between text-xs text-white/60 font-medium mb-1">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#d96677] animate-ping" />
                 {isAr ? 'جاري تحضير التجربة السينمائية...' : 'Preparing cinematic experience...'}
@@ -58,6 +78,27 @@ export default function HeroPreloader({ progress, isReady }: HeroPreloaderProps)
                 {Math.round(progress)}%
               </span>
             </div>
+
+            {/* Exact Frame Counter */}
+            <div className="w-full flex items-center justify-between text-[11px] text-white/40 font-mono">
+              <span>{isAr ? 'الإطارات المحملة:' : 'Loaded frames:'}</span>
+              <span className="text-white/60">
+                {loadedCount} / {totalCount} {isAr ? 'إطار' : 'frames'}
+              </span>
+            </div>
+
+            {/* Skip Option for Graceful Recovery */}
+            {showSkip && onSkip && (
+              <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={onSkip}
+                className="mt-6 text-xs text-white/50 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer border border-white/10 hover:border-white/30 rounded-full px-4 py-1.5 bg-white/5 backdrop-blur-sm"
+              >
+                <span>{isAr ? 'المتابعة إلى المتجر مباشرة' : 'Continue to store directly'}</span>
+                <ArrowRight className="w-3 h-3 rtl:rotate-180" />
+              </motion.button>
+            )}
           </div>
         </motion.div>
       )}

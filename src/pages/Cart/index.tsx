@@ -1,20 +1,15 @@
 // @ts-ignore
 import React from 'react';
 import { Link, useNavigate } from 'react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShoppingBag, ChevronRight, ChevronLeft, Trash2, Tag, Truck, ShieldCheck, Heart, Minus, Plus, Home } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/footer/Footer';
 import { useStore } from '../../store/useStore';
-
-const mockSuggestions = [
-  { id: 1, name: "Flower Keychain", price: 230, rating: 5, reviews: 14, image: "/images/backgrounds/cart-hero.jpg" },
-  { id: 2, name: "Home Decor Vase", price: 299, rating: 4, reviews: 21, image: "/images/backgrounds/cart-hero.jpg" },
-  { id: 3, name: "Crochet Bunny Toy", price: 249, rating: 5, reviews: 18, image: "/images/backgrounds/cart-hero.jpg" },
-  { id: 4, name: "Handmade Clutch Bag", price: 380, rating: 4, reviews: 12, image: "/images/backgrounds/cart-hero.jpg" },
-  { id: 5, name: "Gift Box Set", price: 540, rating: 5, reviews: 16, image: "/images/backgrounds/cart-hero.jpg" }
-];
+import { productsService } from '../../api/services';
+import ProductImage from '../../components/ui/ProductImage';
+import CustomSelect from '../../components/ui/CustomSelect';
 
 export default function Cart() {
   const { t, i18n } = useTranslation();
@@ -22,10 +17,56 @@ export default function Cart() {
   const items = useStore(state => state.cart);
   const removeFromCart = useStore(state => state.removeFromCart);
   const updateQuantity = useStore(state => state.updateQuantity);
+  const addToCart = useStore(state => state.addToCart);
+  const governorates = useStore(state => state.governorates);
+  const selectedGovId = useStore(state => state.selectedGovId);
+  const setSelectedGovId = useStore(state => state.setSelectedGovId);
+  const storeShippingCost = useStore(state => state.shippingCost);
+  const fetchGovernorates = useStore(state => state.fetchGovernorates);
+
   const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const currentGov = governorates.find(g => String(g.id) === String(selectedGovId));
+  const shipping = items.length > 0 
+    ? (currentGov ? Number(currentGov.shipping_cost) : (storeShippingCost || (governorates[0] ? Number(governorates[0].shipping_cost) : 0)))
+    : 0;
   const [discount, setDiscount] = useState(0);
   const applyPromo = () => setDiscount(20);
+  const orderTotal = items.length > 0 ? Math.max(0, total + shipping - discount) : 0;
   const isRTL = i18n.dir() === 'rtl';
+
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    productsService.getProducts({ per_page: 5 })
+      .then((res) => {
+        if (!isMounted) return;
+        if (res.products && res.products.length > 0) {
+          setSuggestions(
+            res.products.map((p) => ({
+              id: p.id,
+              name: p.name,
+              price: Number(p.discounted_price || p.price),
+              rating: p.rating_avg ? Math.round(Number(p.rating_avg)) : 5,
+              reviews: p.rating_count || 0,
+              image: p.primary_image || p.images?.[0]?.url || null,
+              slug: p.slug,
+            }))
+          );
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setLoadingSuggestions(false);
+      });
+
+    fetchGovernorates().catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchGovernorates]);
 
   return (
     <div className="min-h-screen bg-[#FDF5F6] flex flex-col font-sans">
@@ -36,7 +77,7 @@ export default function Cart() {
         <div className="relative min-h-[300px] md:min-h-[350px] flex items-center overflow-hidden bg-[#fffaf8]">
           <div className="absolute inset-0 z-0">
             <img 
-              src="/images/backgrounds/products-hero.png" 
+              src="/images/backgrounds/products-hero.webp" 
               alt="Cart Background"
               className="w-full h-full object-cover object-center rtl:scale-x-[-1]"
             />
@@ -186,17 +227,39 @@ export default function Cart() {
                     </div>
                     <div className="flex justify-between items-center text-sm font-medium text-text-dark">
                       <div>
-                        <div>{t('cart.shipping')}</div>
+                        <div>{t('cart.shipping')} {currentGov ? `(${currentGov.name})` : ''}</div>
                         <div className="text-xs text-text-light">{t('cart.standardShipping')}</div>
                       </div>
-                      <span className="font-bold">EGP {total > 0 ? 60 : 0}</span>
+                      <span className="font-bold">EGP {shipping}</span>
                     </div>
+
+                    {/* Governorate Selector for Shipping Calculation */}
+                    {governorates.length > 0 && items.length > 0 && (
+                      <div className="pt-2">
+                        <label className="text-xs text-text-light mb-1.5 block">
+                          {isRTL ? 'حساب الشحن حسب المحافظة:' : 'Estimate shipping by governorate:'}
+                        </label>
+                        <CustomSelect
+                          value={selectedGovId || ''}
+                          onChange={(val) => setSelectedGovId(val)}
+                          options={governorates.map((gov) => ({
+                            value: String(gov.id),
+                            label: gov.name,
+                            sublabel: `(${gov.shipping_cost} EGP)`,
+                          }))}
+                          size="sm"
+                          variant="subtle"
+                          searchable={true}
+                          searchPlaceholder={isRTL ? 'ابحث عن المحافظة...' : 'Search governorate...'}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="pt-6 border-t border-[#EACBD0]/40 mb-6">
                     <div className="flex justify-between items-center">
                       <span className="text-xl font-bold text-text-dark">{t('cart.totalOrder')}</span>
-                      <span className="text-2xl font-bold text-primary">EGP {total > 0 ? total + 60 : 0}</span>
+                      <span className="text-2xl font-bold text-primary">EGP {orderTotal}</span>
                     </div>
                   </div>
 
@@ -251,7 +314,7 @@ export default function Cart() {
                   
                   {/* Decorative corner */}
                   <div className="absolute bottom-0 right-0 w-32 h-32 pointer-events-none opacity-30 mix-blend-multiply">
-                    <img src="/images/decorations/floral.png" alt="" className={`w-full h-full object-cover ${isRTL ? 'scale-x-[-1]' : ''}`} />
+                    <img src="/images/decorations/floral.webp" alt="" className={`w-full h-full object-cover ${isRTL ? 'scale-x-[-1]' : ''}`} />
                   </div>
                 </div>
               </div>
@@ -279,45 +342,79 @@ export default function Cart() {
               </Link>
             </div>
 
-            {/* Carousel */}
-            <div className="relative group">
-              <button className={`absolute top-1/2 -translate-y-1/2 -left-4 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-text-dark hover:text-primary z-10 hidden sm:flex ${isRTL ? 'right-4' : 'left-4'}`}>
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              
+            {/* Carousel or Skeletons */}
+            {loadingSuggestions ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                {mockSuggestions.map((item) => (
-                  <div key={item.id} className="bg-[#FCF8F9] rounded-2xl overflow-hidden shadow-sm border border-[#f5ebeb] group/card">
-                    <div className="relative aspect-square">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500" />
-                      <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-text-light hover:text-primary shadow-sm transition-colors">
-                        <Heart className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-bold text-text-dark text-sm mb-1 truncate">{item.name}</h3>
-                      <div className="flex items-center gap-1 mb-2">
-                        <div className="flex text-yellow-400">
-                          {[...Array(5)].map((_, i) => (
-                            <svg key={i} className={`w-3 h-3 ${i < item.rating ? 'fill-current' : 'text-gray-300'}`} viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                          ))}
-                        </div>
-                        <span className="text-xs text-text-light">({item.reviews})</span>
-                      </div>
-                      <div className="font-bold text-text-dark mb-4">EGP {item.price}</div>
-                      <button onClick={(e) => { const el = e.currentTarget; const orig = el.innerHTML; el.innerHTML = 'Added'; setTimeout(() => el.innerHTML = orig, 1000); }} className="w-full bg-[#9A3B50] hover:bg-[#833244] text-white text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-2">
-                        <ShoppingBag className="w-3.5 h-3.5" />
-                        {t('cart.addToCart')}
-                      </button>
-                    </div>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <div key={n} className="bg-[#FCF8F9] rounded-2xl overflow-hidden border border-[#f5ebeb] p-3 animate-pulse">
+                    <div className="aspect-square bg-gray-200/70 rounded-xl mb-3" />
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                    <div className="h-3 bg-gray-100 rounded w-1/2 mb-4" />
+                    <div className="h-8 bg-gray-200/60 rounded-lg" />
                   </div>
                 ))}
               </div>
+            ) : suggestions.length > 0 ? (
+              <div className="relative group">
+                <button className={`absolute top-1/2 -translate-y-1/2 -left-4 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-text-dark hover:text-primary z-10 hidden sm:flex ${isRTL ? 'right-4' : 'left-4'}`}>
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                  {suggestions.map((item) => (
+                    <div key={item.id} className="bg-[#FCF8F9] rounded-2xl overflow-hidden shadow-sm border border-[#f5ebeb] group/card">
+                      <div className="relative aspect-square">
+                        <ProductImage 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500" 
+                          label={item.name}
+                        />
+                        <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-text-light hover:text-primary shadow-sm transition-colors">
+                          <Heart className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-bold text-text-dark text-sm mb-1 truncate">{item.name}</h3>
+                        <div className="flex items-center gap-1 mb-2">
+                          <div className="flex text-yellow-400">
+                            {[...Array(5)].map((_, i) => (
+                              <svg key={i} className={`w-3 h-3 ${i < item.rating ? 'fill-current' : 'text-gray-300'}`} viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                            ))}
+                          </div>
+                          <span className="text-xs text-text-light">({item.reviews})</span>
+                        </div>
+                        <div className="font-bold text-text-dark mb-4">EGP {item.price}</div>
+                        <button 
+                          onClick={(e) => { 
+                            addToCart({
+                              id: item.id,
+                              name: item.name,
+                              price: item.price,
+                              image: item.image || '',
+                              category: 'Handmade',
+                              slug: item.slug
+                            });
+                            const el = e.currentTarget; 
+                            const orig = el.innerHTML; 
+                            el.innerHTML = isRTL ? 'تمت الإضافة ✓' : 'Added ✓'; 
+                            setTimeout(() => el.innerHTML = orig, 1200); 
+                          }} 
+                          className="w-full bg-[#9A3B50] hover:bg-[#833244] text-white text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <ShoppingBag className="w-3.5 h-3.5" />
+                          {t('cart.addToCart')}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-              <button className={`absolute top-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-text-dark hover:text-primary z-10 hidden sm:flex ${isRTL ? 'left-4' : '-right-4'}`}>
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
+                <button className={`absolute top-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-text-dark hover:text-primary z-10 hidden sm:flex ${isRTL ? 'left-4' : '-right-4'}`}>
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            ) : null}
           </div>
         </section>
       </main>

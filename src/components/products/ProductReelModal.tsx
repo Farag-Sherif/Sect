@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Share2, Volume2, VolumeX, Play, Pause, ShoppingBag, Check, Music2, Sparkles, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../../store/useStore';
+import ProductImage from '../ui/ProductImage';
 
 interface ProductReelModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ export default function ProductReelModal({
   isOpen,
   onClose,
   product,
-  videoSrc = '/videos/crafting-reel.mp4'
+  videoSrc
 }: ProductReelModalProps) {
   const { i18n } = useTranslation();
   const isAr = i18n.language === 'ar';
@@ -151,7 +152,7 @@ export default function ProductReelModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !videoSrc) return null;
 
   return (
     <div
@@ -284,11 +285,14 @@ export default function ProductReelModal({
             {product && (
               <div className="bg-white/15 hover:bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl p-2.5 flex items-center justify-between gap-3 shadow-2xl transition-all">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <img
-                    src={product.image || '/images/products/placeholder.jpg'}
-                    alt={product.name}
-                    className="w-11 h-11 rounded-xl object-cover shrink-0 border border-white/30 shadow-md"
-                  />
+                  <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-white/30 shadow-md">
+                    <ProductImage
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                      label={product.name}
+                    />
+                  </div>
                   <div className="min-w-0 flex flex-col">
                     <span className="text-white font-bold text-xs truncate">
                       {product.name}

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { X, Trash2, ShoppingBag, Plus, Minus } from 'lucide-react';
 import { useStore } from '../../store/useStore';
+import ProductImage from '../ui/ProductImage';
 
 interface SidebarCartProps {
   isOpen: boolean;
@@ -19,16 +20,27 @@ export default function SidebarCart({ isOpen, onClose }: SidebarCartProps) {
   const clearCart = useStore(state => state.clearCart);
   const removeFromCart = useStore(state => state.removeFromCart);
   const updateQuantity = useStore(state => state.updateQuantity);
+  const governorates = useStore(state => state.governorates);
+  const selectedGovId = useStore(state => state.selectedGovId);
+  const storeShippingCost = useStore(state => state.shippingCost);
+  const fetchGovernorates = useStore(state => state.fetchGovernorates);
+
   const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const currentGov = governorates.find(g => String(g.id) === String(selectedGovId));
+  const shipping = items.length > 0
+    ? (currentGov ? Number(currentGov.shipping_cost) : (storeShippingCost || (governorates[0] ? Number(governorates[0].shipping_cost) : 0)))
+    : 0;
+  const orderTotal = items.length > 0 ? total + shipping : 0;
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      fetchGovernorates().catch(() => {});
     } else {
       document.body.style.overflow = 'unset';
     }
     return () => { document.body.style.overflow = 'unset'; };
-  }, [isOpen]);
+  }, [isOpen, fetchGovernorates]);
 
   if (!isOpen) return null;
 
@@ -47,7 +59,7 @@ export default function SidebarCart({ isOpen, onClose }: SidebarCartProps) {
       >
         {/* Decorative Background at Bottom */}
         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden flex flex-col items-center justify-center">
-           <img src="/images/decorations/floral.png" className={`absolute bottom-0 inset-x-0 w-full h-64 object-cover opacity-40 ${isRTL ? '' : 'scale-x-[-1]'}`} alt="floral" />
+           <img src="/images/decorations/floral.webp" className={`absolute bottom-0 inset-x-0 w-full h-64 object-cover opacity-40 ${isRTL ? '' : 'scale-x-[-1]'}`} alt="floral" />
            
            {/* Watermark Text */}
            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center opacity-20 transform -rotate-[15deg] scale-[1.3] w-full">
@@ -75,7 +87,7 @@ export default function SidebarCart({ isOpen, onClose }: SidebarCartProps) {
           <span className="text-sm font-medium text-text-light">{items.reduce((acc, i) => acc + i.quantity, 0)} {t('cart.items').toLowerCase()}</span>
           <button onClick={() => clearCart()} className="flex items-center gap-1.5 text-sm font-bold text-primary hover:text-primary-dark transition-colors">
             <Trash2 className="w-4 h-4" />
-            Clear Cart
+            {t('cart.clearCart', isRTL ? 'تفريغ السلة' : 'Clear Cart')}
           </button>
         </div>
 
@@ -85,8 +97,13 @@ export default function SidebarCart({ isOpen, onClose }: SidebarCartProps) {
             {items.map((item) => (
               <div key={item.id} className="flex gap-4 group">
                 {/* Image */}
-                <div className="w-20 h-20 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
-                  <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <div className="w-20 h-20 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-gray-50">
+                  <ProductImage 
+                    src={item.image} 
+                    alt={item.name} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    label={item.name}
+                  />
                 </div>
                 
                 {/* Details */}
@@ -95,7 +112,7 @@ export default function SidebarCart({ isOpen, onClose }: SidebarCartProps) {
                     <h3 className="font-bold text-text-dark text-[15px] leading-tight mb-1">{item.name}</h3>
                     <p className="text-[12px] text-text-light">{item.category}</p>
                   </div>
-                  <div className="font-bold text-text-dark text-[14px]">EGP {item.price}</div>
+                  <div className="font-bold text-text-dark text-[14px]">{t('common.egp', 'EGP')} {item.price}</div>
                 </div>
 
                 {/* Controls */}
@@ -119,15 +136,15 @@ export default function SidebarCart({ isOpen, onClose }: SidebarCartProps) {
           <div className="space-y-3 mb-6">
             <div className="flex justify-between items-center text-sm font-medium text-text-dark">
               <span>{t('cart.subtotal')}</span>
-              <span>EGP {total}</span>
+              <span>{t('common.egp', 'EGP')} {total}</span>
             </div>
             <div className="flex justify-between items-center text-sm font-medium text-text-dark">
-              <span>{t('cart.shipping')}</span>
-              <span>EGP {total > 0 ? 60 : 0}</span>
+              <span>{t('cart.shipping')} {currentGov ? `(${currentGov.name})` : ''}</span>
+              <span>{t('common.egp', 'EGP')} {shipping}</span>
             </div>
             <div className="pt-3 border-t border-[#EACBD0]/40 flex justify-between items-center">
               <span className="text-lg font-bold text-text-dark">{t('cart.totalOrder')}</span>
-              <span className="text-xl font-bold text-primary">EGP {total > 0 ? total + 60 : 0}</span>
+              <span className="text-xl font-bold text-primary">{t('common.egp', 'EGP')} {orderTotal}</span>
             </div>
           </div>
 

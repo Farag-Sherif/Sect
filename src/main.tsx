@@ -16,6 +16,8 @@ const Collections = lazy(() => import('./pages/Collections'));
 const Journal = lazy(() => import('./pages/Journal'));
 const Favorites = lazy(() => import('./pages/Favorites'));
 const Checkout = lazy(() => import('./pages/Checkout'));
+const Profile = lazy(() => import('./pages/Profile'));
+const StaticPage = lazy(() => import('./pages/StaticPage'));
 
 import ScrollToTop from './components/common/ScrollToTop';
 
@@ -28,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products/:id" element={<ProductDetails />} />
           <Route path="/cart" element={<Cart />} />
@@ -37,6 +40,15 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/journal" element={<Journal />} />
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/checkout" element={<Checkout />} />
+          
+          {/* Static policy & FAQ routes connected to API */}
+          <Route path="/pages/:slug" element={<StaticPage />} />
+          <Route path="/faqs" element={<StaticPage />} />
+          <Route path="/faq" element={<StaticPage />} />
+          <Route path="/shipping" element={<StaticPage />} />
+          <Route path="/returns" element={<StaticPage />} />
+          <Route path="/privacy" element={<StaticPage />} />
+          <Route path="/terms" element={<StaticPage />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

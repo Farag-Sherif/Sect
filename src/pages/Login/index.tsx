@@ -1,23 +1,43 @@
-import { Smartphone, Lock, Eye, ArrowLeft, Heart, Truck, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, Heart, Truck, ShieldCheck, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { authService } from '../../api/services';
+import { useStore } from '../../store/useStore';
 
 export default function Login() {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
   const navigate = useNavigate();
+  const setAuth = useStore((state) => state.setAuth);
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      setError(isRTL ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور' : 'Please enter email and password');
+      return;
+    }
     setIsLoading(true);
     setError('');
-    setTimeout(() => {
+    try {
+      const res = await authService.login({ email, password });
+      if (res.user && res.token) {
+        setAuth(res.user, res.token);
+        navigate('/');
+      } else {
+        throw new Error(isRTL ? 'فشل تسجيل الدخول' : 'Login failed');
+      }
+    } catch (err: any) {
+      setError(err?.message || (isRTL ? 'فشل تسجيل الدخول، تأكد من صحة البيانات' : 'Login failed. Please check credentials.'));
+    } finally {
       setIsLoading(false);
-      navigate('/');
-    }, 1500);
+    }
   };
 
   return (
@@ -95,10 +115,10 @@ export default function Login() {
           
           {/* Floral decorations for the form background */}
           <div className="absolute top-0 left-0 w-48 sm:w-64 h-48 sm:h-64 pointer-events-none opacity-[0.15] z-0">
-            <img src="/images/decorations/floral.png" className={`w-full h-full object-cover ${isRTL ? 'scale-x-[-1]' : ''}`} alt="" />
+            <img src="/images/decorations/floral.webp" className={`w-full h-full object-cover ${isRTL ? 'scale-x-[-1]' : ''}`} alt="" />
           </div>
           <div className="absolute bottom-0 right-0 w-48 sm:w-64 h-48 sm:h-64 pointer-events-none opacity-[0.15] mix-blend-multiply z-0">
-            <img src="/images/decorations/floral.png" className={`w-full h-full object-cover ${isRTL ? '' : 'scale-x-[-1]'}`} alt="" />
+            <img src="/images/decorations/floral.webp" className={`w-full h-full object-cover ${isRTL ? '' : 'scale-x-[-1]'}`} alt="" />
           </div>
 
           <div className="my-auto sm:mx-auto sm:w-full w-full relative z-10">
@@ -136,23 +156,30 @@ export default function Login() {
 
             {/* Form */}
             <form className="space-y-4" onSubmit={handleSubmit}>
-              {error && <div className="text-red-500 text-sm">{error}</div>}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-medium">
+                  {error}
+                </div>
+              )}
               
-              {/* Mobile Number */}
+              {/* Email Address */}
               <div>
-                <label htmlFor="mobile" className={`block text-[15px] font-bold text-[#9A3B50] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('auth.mobile')}
+                <label htmlFor="email" className={`block text-[15px] font-bold text-[#9A3B50] mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t('auth.email', 'البريد الإلكتروني')}
                 </label>
                 <div className="relative rounded-xl border border-[#DCDFE4] bg-[#F1F4F9] overflow-hidden transition-colors focus-within:border-[#9A3B50]">
                   <div className={`absolute inset-y-0 ${isRTL ? 'right-0 pr-4' : 'left-0 pl-4'} flex items-center pointer-events-none`}>
-                    <Smartphone className="h-[20px] w-[20px] text-[#9A3B50] stroke-[1.5]" />
+                    <Mail className="h-[20px] w-[20px] text-[#9A3B50] stroke-[1.5]" />
                   </div>
                   <input
-                    id="mobile"
-                    name="mobile"
-                    type="tel"
-                    className={`block w-full ${isRTL ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3.5 text-[15px] outline-none bg-transparent placeholder-[#9A3B50] text-[#9A3B50] ${isRTL ? 'text-right' : 'text-left'}`}
-                    placeholder={t('auth.mobilePlaceholder')}
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className={`block w-full ${isRTL ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3.5 text-[15px] outline-none bg-transparent placeholder-[#9A3B50]/60 text-[#333] ${isRTL ? 'text-right' : 'text-left'}`}
+                    placeholder={t('auth.emailPlaceholder', 'name@example.com')}
                   />
                 </div>
               </div>
@@ -169,13 +196,20 @@ export default function Login() {
                   <input
                     id="password"
                     name="password"
-                    type="password"
-                    className={`block w-full ${isRTL ? 'pr-12 pl-12' : 'pl-12 pr-12'} py-3.5 text-[15px] outline-none bg-transparent placeholder-[#111827] text-[#111827] ${isRTL ? 'text-right' : 'text-left'} tracking-widest`}
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className={`block w-full ${isRTL ? 'pr-12 pl-12' : 'pl-12 pr-12'} py-3.5 text-[15px] outline-none bg-transparent placeholder-[#111827] text-[#111827] ${isRTL ? 'text-right' : 'text-left'}`}
                     placeholder={t('auth.passwordPlaceholder')}
                   />
-                  <div className={`absolute inset-y-0 ${isRTL ? 'left-0 pl-4' : 'right-0 pr-4'} flex items-center cursor-pointer hover:opacity-80`}>
-                    <Eye className="h-[20px] w-[20px] text-[#867577] stroke-[1.5]" />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className={`absolute inset-y-0 ${isRTL ? 'left-0 pl-4' : 'right-0 pr-4'} flex items-center cursor-pointer hover:opacity-80 text-[#867577]`}
+                  >
+                    {showPassword ? <EyeOff className="h-[20px] w-[20px] stroke-[1.5]" /> : <Eye className="h-[20px] w-[20px] stroke-[1.5]" />}
+                  </button>
                 </div>
               </div>
 
@@ -210,12 +244,19 @@ export default function Login() {
               <div className="pt-4">
                 <button
                   type="submit"
-                  className={`w-full flex justify-center items-center py-4 px-4 rounded-xl shadow-sm text-[16px] font-bold text-white bg-[#A94A5C] hover:bg-[#97394E] focus:outline-none transition-colors ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}
+                  disabled={isLoading}
+                  className={`w-full flex justify-center items-center py-4 px-4 rounded-xl shadow-sm text-[16px] font-bold text-white bg-[#A94A5C] hover:bg-[#97394E] focus:outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}
                 >
-                  <span className={isRTL ? 'ml-2' : 'mr-2'}>
-                    {isLoading ? (isRTL ? 'جاري التحميل...' : 'Loading...') : t('auth.loginBtn')}
-                  </span>
-                  <ArrowLeft className={`h-[20px] w-[20px] ${isRTL ? 'rotate-0' : 'rotate-180'}`} />
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto text-white" />
+                  ) : (
+                    <>
+                      <span className={isRTL ? 'ml-2' : 'mr-2'}>
+                        {t('auth.loginBtn')}
+                      </span>
+                      <ArrowLeft className={`h-[20px] w-[20px] ${isRTL ? 'rotate-0' : 'rotate-180'}`} />
+                    </>
+                  )}
                 </button>
               </div>
             </form>

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { X, Search, Heart, ShoppingCart, User, Globe, ChevronRight, Home, Store, Layers, BookOpen, Info, Phone } from 'lucide-react';
-import { useMockData } from '../../data/mockData';
 import { useStore } from '../../store/useStore';
 
 interface MobileNavDrawerProps {
@@ -13,7 +12,14 @@ interface MobileNavDrawerProps {
 
 export default function MobileNavDrawer({ isOpen, onClose, onOpenCart }: MobileNavDrawerProps) {
   const { t, i18n } = useTranslation();
-  const { navigationLinks } = useMockData();
+  const navigationLinks = [
+    { id: 'home', label: t('nav.home', 'Home'), path: '/' },
+    { id: 'store', label: t('nav.store', 'Store'), path: '/products' },
+    { id: 'collections', label: t('nav.collections', 'Collections'), path: '/collections' },
+    { id: 'journal', label: t('nav.journal', 'Journal'), path: '/journal' },
+    { id: 'about', label: t('nav.story', 'About'), path: '/about' },
+    { id: 'contact', label: t('nav.contact', 'Contact'), path: '/contact' },
+  ];
   const location = useLocation();
   const navigate = useNavigate();
   const isRTL = i18n.dir() === 'rtl';
@@ -175,16 +181,51 @@ export default function MobileNavDrawer({ isOpen, onClose, onOpenCart }: MobileN
             )}
           </button>
 
-          <Link
-            to="/login"
-            onClick={onClose}
-            className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#3a1c22] hover:bg-[#fbf7f6] transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <User className="w-4 h-4 text-[#d96677]" />
-              <span>{isRTL ? 'تسجيل الدخول / حسابي' : 'Login / My Account'}</span>
+          {useStore.getState().isAuthenticated && useStore.getState().user ? (
+            <div className="pt-2">
+              <Link
+                to="/profile"
+                onClick={onClose}
+                className="block px-3.5 py-2.5 rounded-xl bg-[#fdf5f6] border border-[#f5ebeb] mb-1.5 hover:bg-[#fcecef] transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] text-[#3a1c22]/60">{isRTL ? 'تسجيل الدخول باسم' : 'Logged in as'}</p>
+                    <p className="text-sm font-bold text-[#3a1c22] truncate">{useStore.getState().user?.name}</p>
+                  </div>
+                  <User className="w-4 h-4 text-[#d96677]" />
+                </div>
+              </Link>
+              <Link
+                to="/profile"
+                onClick={onClose}
+                className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-semibold text-[#3a1c22] hover:bg-[#fbf7f6] transition-colors mb-1"
+              >
+                <span>{isRTL ? 'إدارة الملف الشخصي' : 'Manage Profile'}</span>
+              </Link>
+              <button
+                onClick={async () => {
+                  onClose();
+                  await useStore.getState().logout();
+                  navigate('/');
+                }}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <span>{isRTL ? 'تسجيل الخروج' : 'Logout'}</span>
+              </button>
             </div>
-          </Link>
+          ) : (
+            <Link
+              to="/login"
+              onClick={onClose}
+              className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#3a1c22] hover:bg-[#fbf7f6] transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <User className="w-4 h-4 text-[#d96677]" />
+                <span>{isRTL ? 'تسجيل الدخول / حساب جديد' : 'Login / Register'}</span>
+              </div>
+            </Link>
+          )}
         </div>
 
         {/* Footer Language Toggle */}

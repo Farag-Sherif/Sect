@@ -16,7 +16,7 @@ export default function About() {
         <section className="relative min-h-[600px] flex items-center overflow-hidden">
           <div className="absolute inset-0 z-0">
             <img 
-              src="/images/backgrounds/products-hero.png" 
+              src="/images/backgrounds/products-hero.webp" 
               alt="Background"
               className="w-full h-full object-cover object-center rtl:scale-x-[-1]"
             />
@@ -64,12 +64,12 @@ export default function About() {
                   {/* Polaroid 1 */}
                   <div className="absolute ltr:left-0 rtl:right-0 top-10 w-[260px] h-[300px] bg-white p-3 pb-12 shadow-xl transform ltr:-rotate-6 rtl:rotate-6 z-10 border border-gray-100 rounded-sm">
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-6 bg-[#d1bfae]/50 transform rotate-3 backdrop-blur-sm z-30"></div>
-                    <img src="https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=400&q=80" className="w-full h-full object-cover ltr:-scale-x-100" alt="Bag" />
+                    <img src="/images/backgrounds/about-hero.jpg" className="w-full h-full object-cover ltr:-scale-x-100" alt="Bag" />
                   </div>
                   {/* Polaroid 2 */}
                   <div className="absolute ltr:right-10 rtl:left-10 top-0 w-[240px] h-[280px] bg-white p-3 pb-10 shadow-lg transform ltr:rotate-6 rtl:-rotate-6 z-0 border border-gray-100 rounded-sm">
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-6 bg-[#d1bfae]/50 transform -rotate-3 backdrop-blur-sm z-30"></div>
-                    <img src="https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80" className="w-full h-full object-cover" alt="City" />
+                    <img src="/images/backgrounds/cart-hero.jpg" className="w-full h-full object-cover" alt="Craft" />
                   </div>
                   {/* Text Note */}
                   <div className="absolute bottom-10 ltr:right-20 rtl:left-20 transform ltr:-rotate-12 rtl:rotate-12 font-handwriting text-[#913b4c] text-3xl leading-tight z-20 whitespace-pre-line ltr:text-left rtl:text-right">
@@ -107,7 +107,7 @@ export default function About() {
           </div>
           
           {/* Floral edge decors */}
-          <img src="/images/decorations/floral.png" className="absolute ltr:-left-16 rtl:-right-16 top-1/2 -translate-y-1/2 w-48 opacity-40 ltr:-scale-x-100 pointer-events-none" style={{ filter: 'brightness(0) saturate(100%) invert(35%) sepia(85%) saturate(306%) hue-rotate(314deg) brightness(85%) contrast(85%)' }} alt="" />
+          <img src="/images/decorations/floral.webp" className="absolute ltr:-left-16 rtl:-right-16 top-1/2 -translate-y-1/2 w-48 opacity-40 ltr:-scale-x-100 pointer-events-none" style={{ filter: 'brightness(0) saturate(100%) invert(35%) sepia(85%) saturate(306%) hue-rotate(314deg) brightness(85%) contrast(85%)' }} alt="" />
           <div className="absolute bottom-0 left-0 w-full h-8 md:h-12 z-40 text-white">
             <svg viewBox="0 0 1000 100" preserveAspectRatio="none" className="w-full h-full fill-current">
               <path d="M0,50 Q50,60 100,40 T200,50 Q250,70 300,45 T400,55 Q450,35 500,60 T600,40 Q650,65 700,50 T800,55 Q850,30 900,60 T1000,50 L1000,100 L0,100 Z" />
@@ -174,7 +174,7 @@ export default function About() {
             </div>
           </div>
           
-          <img src="/images/decorations/floral.png" className="absolute ltr:-right-16 rtl:-left-16 top-1/3 w-48 opacity-40 pointer-events-none rtl:-scale-x-100" style={{ filter: 'brightness(0) saturate(100%) invert(35%) sepia(85%) saturate(306%) hue-rotate(314deg) brightness(85%) contrast(85%)' }} alt="" />
+          <img src="/images/decorations/floral.webp" className="absolute ltr:-right-16 rtl:-left-16 top-1/3 w-48 opacity-40 pointer-events-none rtl:-scale-x-100" style={{ filter: 'brightness(0) saturate(100%) invert(35%) sepia(85%) saturate(306%) hue-rotate(314deg) brightness(85%) contrast(85%)' }} alt="" />
           <div className="absolute bottom-0 left-0 w-full h-8 md:h-12 z-40 text-[#fcf9f5]">
             <svg viewBox="0 0 1000 100" preserveAspectRatio="none" className="w-full h-full fill-current">
               <path d="M0,50 Q50,60 100,40 T200,50 Q250,70 300,45 T400,55 Q450,35 500,60 T600,40 Q650,65 700,50 T800,55 Q850,30 900,60 T1000,50 L1000,100 L0,100 Z" />
@@ -214,7 +214,7 @@ export default function About() {
                   <div className="absolute ltr:-right-8 rtl:-left-8 bottom-0 bg-white p-3 shadow-xl transform ltr:rotate-6 rtl:-rotate-6 rounded-sm w-48 hidden xl:block z-20 border border-gray-100">
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-5 bg-[#d1bfae]/50 transform -rotate-3 backdrop-blur-sm z-30"></div>
                     <div className="space-y-2 mb-4">
-                      <img src="https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=300&q=80" className="w-full h-24 object-cover ltr:-scale-x-100" alt="" />
+                      <img src="/images/backgrounds/collections-hero.jpg" className="w-full h-24 object-cover ltr:-scale-x-100" alt="" />
                       <img src="/images/backgrounds/about-hero.jpg" className="w-full h-24 object-cover" alt="" />
                     </div>
                     <div className="font-handwriting text-[#913b4c] text-2xl text-center leading-tight whitespace-pre-line">

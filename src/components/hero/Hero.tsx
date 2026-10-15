@@ -3,15 +3,12 @@ import { useScroll, useTransform, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { ShieldCheck, Truck, Gift, Leaf, Package } from 'lucide-react';
-import { useMockData } from '../../data/mockData';
+import { categoriesService } from '../../api/services';
+import type { ApiCategory } from '../../api/types';
 import HeroPreloader from './HeroPreloader';
+import { heroFrameManager, HERO_FRAME_COUNT, type FramePreloadProgress } from './HeroFrameManager';
 
-const FRAME_COUNT = 744;
-const START_FRAME = 217;
-const INITIAL_PRELOAD_COUNT = 80;
-
-const getFramePath = (index: number) => 
-  `/images/hero bg/${(index + START_FRAME).toString().padStart(5, '0')}.webp`;
+const FRAME_COUNT = HERO_FRAME_COUNT;
 
 const getIcon = (name: string) => {
   const className = "w-6 h-6 md:w-8 md:h-8 text-[#d96677] mb-3";
@@ -26,26 +23,54 @@ const getIcon = (name: string) => {
 };
 
 export default function Hero() {
-  const { t } = useTranslation();
-  const { features, categoryPills } = useMockData();
+  const { t, i18n } = useTranslation();
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    categoriesService.getCategories()
+      .then((data) => {
+        if (isMounted) setCategories(data || []);
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, [i18n.language]);
+
+  const featuresList = [
+    { id: '1', title: t('features.paymentTitle', 'دفع آمن'), subtitle: t('features.paymentSubtitle', 'بكل سهولة'), icon: 'ShieldCheck' },
+    { id: '2', title: t('features.shippingTitle', 'شحن سريع'), subtitle: t('features.shippingSubtitle', 'لجميع المحافظات'), icon: 'Truck' },
+    { id: '3', title: t('features.details1Title', 'تفاصيل مميزة'), subtitle: t('features.details1Subtitle', 'بكل حب وإتقان'), icon: 'Gift' },
+    { id: '4', title: t('features.materialsTitle', 'خامات طبيعية وآمنة'), subtitle: t('features.materialsSubtitle', 'صديقة للبيئة'), icon: 'Leaf' },
+  ];
+
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imagesRef = useRef<(HTMLImageElement | null)[]>(new Array(FRAME_COUNT).fill(null));
 
-  const [loadProgress, setLoadProgress] = useState(0);
-  const [isReady, setIsReady] = useState(false);
+  const [preloadProgress, setPreloadProgress] = useState<FramePreloadProgress>(
+    heroFrameManager.getProgress()
+  );
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"]
   });
 
-  // Master Timeline mapping 1200vh to 744 frames smoothly
+  // Master Timeline mapping 1200vh to 100 frames smoothly
   const frameIndex = useTransform(
     scrollYProgress, 
     [0, 0.15, 0.20, 0.35, 0.40, 0.55, 0.60, 0.75, 0.80, 1],
-    [0, 120,  250,  350,  480,  550,  650,  700,  720, FRAME_COUNT - 1]
+    [0, 16,   34,   47,   65,   74,   87,   94,   97,  FRAME_COUNT - 1]
   );
+
+  useEffect(() => {
+    // 1. Subscribe to progress and start managed preloading
+    const unsubscribe = heroFrameManager.onProgress(setPreloadProgress);
+    heroFrameManager.startPreload();
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -58,9 +83,9 @@ export default function Hero() {
 
     const renderFrame = (index: number) => {
       const safeIndex = Math.max(0, Math.min(FRAME_COUNT - 1, index));
-      const img = imagesRef.current[safeIndex];
+      const img = heroFrameManager.getFrame(safeIndex);
       
-      if (img && img.complete && img.naturalWidth > 0) {
+      if (img && img.naturalWidth > 0) {
         const canvasRatio = canvas.width / canvas.height;
         const imgRatio = img.width / img.height;
         let drawWidth, drawHeight, offsetX, offsetY;
@@ -83,101 +108,37 @@ export default function Hero() {
       }
     };
 
-    // 1. Initial critical preload with progress tracking
-    let loadedCount = 0;
-    const handleInitialLoad = (idx: number) => {
-      loadedCount++;
-      setLoadProgress((loadedCount / INITIAL_PRELOAD_COUNT) * 100);
-      if (idx === 0) {
-        renderFrame(0);
-      }
-      if (loadedCount >= INITIAL_PRELOAD_COUNT) {
-        setIsReady(true);
-        renderFrame(0);
-        preloadRemainingFrames();
-      }
-    };
-
-    for (let i = 0; i < INITIAL_PRELOAD_COUNT; i++) {
-      if (!imagesRef.current[i]) {
-        const img = new Image();
-        img.src = getFramePath(i);
-        img.onload = () => handleInitialLoad(i);
-        img.onerror = () => handleInitialLoad(i);
-        imagesRef.current[i] = img;
-      }
-    }
-
-    // Safety fallback so site is never stuck
-    const fallbackTimer = setTimeout(() => {
-      setIsReady(true);
-      renderFrame(Math.floor(frameIndex.get()));
-      preloadRemainingFrames();
-    }, 4500);
-
-    const preloadRemainingFrames = () => {
-      let nextIndex = INITIAL_PRELOAD_COUNT;
-      const batchSize = 35;
-
-      const loadNextBatch = () => {
-        if (nextIndex >= FRAME_COUNT) return;
-        const end = Math.min(FRAME_COUNT, nextIndex + batchSize);
-        for (let i = nextIndex; i < end; i++) {
-          if (!imagesRef.current[i]) {
-            const img = new Image();
-            img.src = getFramePath(i);
-            imagesRef.current[i] = img;
-          }
-        }
-        nextIndex = end;
-        if (nextIndex < FRAME_COUNT) {
-          setTimeout(loadNextBatch, 80);
-        }
-      };
-
-      loadNextBatch();
-    };
-
-    const preloadFramesAround = (targetIndex: number) => {
-      const lookAhead = 40; 
-      for (let i = targetIndex; i < Math.min(FRAME_COUNT, targetIndex + lookAhead); i++) {
-        if (!imagesRef.current[i]) {
-          const img = new Image();
-          img.src = getFramePath(i);
-          imagesRef.current[i] = img;
-          if (i === Math.floor(frameIndex.get())) {
-             img.onload = () => renderFrame(i);
-          }
-        }
-      }
-    };
+    // Render initial frame as soon as frame 0 is available
+    renderFrame(0);
 
     const updateCanvas = () => {
-       const index = Math.floor(frameIndex.get());
-       preloadFramesAround(index);
-       if (index !== currentRenderedIndex) {
-          renderFrame(index);
-       }
-       animationFrameId = requestAnimationFrame(updateCanvas);
+      // Only advance scroll-driven animation when the sequence is ready
+      const targetIndex = preloadProgress.isReady 
+        ? Math.floor(frameIndex.get()) 
+        : 0;
+
+      if (targetIndex !== currentRenderedIndex) {
+        renderFrame(targetIndex);
+      }
+      animationFrameId = requestAnimationFrame(updateCanvas);
     };
 
-    updateCanvas();
+    animationFrameId = requestAnimationFrame(updateCanvas);
     
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      renderFrame(Math.floor(frameIndex.get()));
+      renderFrame(preloadProgress.isReady ? Math.floor(frameIndex.get()) : 0);
     };
     
     window.addEventListener('resize', handleResize);
     handleResize();
 
     return () => {
-      clearTimeout(fallbackTimer);
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
     };
-  }, [frameIndex]);
+  }, [frameIndex, preloadProgress.isReady]);
 
   const op1 = useTransform(scrollYProgress, [0, 0.03, 0.12, 0.15], [0, 1, 1, 0]);
   const y1 = useTransform(scrollYProgress, [0, 0.03, 0.12, 0.15], [40, 0, 0, -40]);
@@ -201,7 +162,13 @@ export default function Hero() {
 
   return (
     <>
-      <HeroPreloader progress={loadProgress} isReady={isReady} />
+      <HeroPreloader 
+        progress={preloadProgress.percent} 
+        loadedCount={preloadProgress.loaded}
+        totalCount={preloadProgress.total}
+        isReady={preloadProgress.isReady} 
+        onSkip={() => heroFrameManager.forceReady(true)}
+      />
       <section ref={containerRef} className="relative h-[1200vh] bg-[#1a0a13]">
       <div className="sticky top-0 w-full h-screen overflow-hidden">
         
@@ -250,7 +217,7 @@ export default function Hero() {
                 {t('collections.whyTitle', 'Why Choose Us?')}
               </h2>
               <div className="grid grid-cols-2 gap-x-6 gap-y-10 max-w-xl mb-12">
-                {features.slice(0, 4).map(f => (
+                {featuresList.map(f => (
                   <div key={f.id} className="flex flex-col items-start">
                     {getIcon(f.icon)}
                     <h3 className="text-white font-bold text-xl mb-2 drop-shadow-md">{f.title}</h3>
@@ -285,7 +252,7 @@ export default function Hero() {
               </div>
             </motion.div>
 
-            {/* Scene 4: Categories / Pills */}
+            {/* Scene 4: Categories / Pills from Live API */}
             <motion.div className="absolute w-full flex flex-col" style={{ opacity: op4, y: y4, pointerEvents: pe4 }}>
               <h2 className="text-4xl md:text-6xl font-bold font-arabic drop-shadow-xl text-white mb-4">
                 {t('sections.categoriesTitle')}
@@ -294,15 +261,26 @@ export default function Hero() {
                 {t('sections.categoriesDesc')}
               </p>
               <div className="flex flex-wrap gap-3 mb-10 max-w-lg">
-                {categoryPills.map((pill) => (
-                  <Link 
-                    key={pill.id} 
-                    to={`/products?category=${pill.id}`}
-                    className="px-5 py-2.5 bg-white/5 backdrop-blur-sm border border-white/20 rounded-full text-white/90 hover:text-white text-sm font-medium shadow-sm hover:bg-white/20 transition-all hover:scale-105"
-                  >
-                    {pill.name}
-                  </Link>
-                ))}
+                {categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <Link 
+                      key={cat.id} 
+                      to={`/products?category=${cat.slug}`}
+                      className="px-5 py-2.5 bg-white/5 backdrop-blur-sm border border-white/20 rounded-full text-white/90 hover:text-white text-sm font-medium shadow-sm hover:bg-white/20 transition-all hover:scale-105"
+                    >
+                      {cat.name}
+                    </Link>
+                  ))
+                ) : (
+                  [1, 2, 3, 4].map((n) => (
+                    <span 
+                      key={n} 
+                      className="px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-white/60 text-sm animate-pulse"
+                    >
+                      ...
+                    </span>
+                  ))
+                )}
               </div>
               <div className="flex items-center gap-6">
                 <Link to="/products" className="inline-flex items-center justify-center px-10 py-4 bg-[#c25a6a] text-white rounded-full text-lg font-bold hover:bg-[#a64958] transition-all shadow-xl hover:-translate-y-1 transform duration-300">

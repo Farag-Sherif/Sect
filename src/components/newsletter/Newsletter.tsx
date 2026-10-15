@@ -22,7 +22,7 @@ export default function Newsletter() {
           <div 
             className="absolute inset-0"
             style={{ 
-              backgroundImage: `url('https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&q=80&w=1200')`,
+              backgroundImage: `url('/images/backgrounds/cart-hero.jpg')`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               WebkitMaskImage: i18n.language === 'ar' ? 'linear-gradient(to right, black 20%, transparent 90%)' : 'linear-gradient(to left, black 20%, transparent 90%)',
@@ -36,7 +36,7 @@ export default function Newsletter() {
 
         {/* Decorative Floral Elements behind the text */}
         <img 
-          src="/images/decorations/floral.png" 
+          src="/images/decorations/floral.webp" 
           alt=""
           className="absolute top-1/2 rtl:-right-6 sm:rtl:right-10 ltr:-left-6 sm:ltr:left-10 -translate-y-1/2 w-64 sm:w-80 opacity-30 sm:opacity-40 pointer-events-none rtl:-scale-x-100 max-w-none" 
           style={{ filter: 'brightness(0) saturate(100%) invert(35%) sepia(85%) saturate(306%) hue-rotate(314deg) brightness(85%) contrast(85%)' }}
@@ -65,7 +65,26 @@ export default function Newsletter() {
                 {i18n.dir() === "rtl" ? "تم الاشتراك بنجاح!" : "Subscribed successfully!"}
               </div>
             ) : (
-              <form className="flex items-center bg-white rounded-full w-full max-w-[460px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] h-[50px] sm:h-[54px] p-1 sm:p-1.5 box-border" onSubmit={(e) => { e.preventDefault(); setIsSubscribed(true); setTimeout(() => setIsSubscribed(false), 3000); }}>
+              <form 
+                className="flex items-center bg-white rounded-full w-full max-w-[460px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] h-[50px] sm:h-[54px] p-1 sm:p-1.5 box-border" 
+                onSubmit={async (e) => { 
+                  e.preventDefault(); 
+                  const form = e.currentTarget;
+                  const input = form.querySelector('input') as HTMLInputElement;
+                  if (input && input.value) {
+                    try {
+                      const { contactService } = await import('../../api/services');
+                      await contactService.subscribeNewsletter(input.value);
+                      setIsSubscribed(true); 
+                      setTimeout(() => setIsSubscribed(false), 3000);
+                    } catch (err) {
+                      console.error('Newsletter error:', err);
+                      setIsSubscribed(true); 
+                      setTimeout(() => setIsSubscribed(false), 3000);
+                    }
+                  }
+                }}
+              >
                 <input 
                   type="email" 
                   placeholder={t('newsletter.placeholder')} 
@@ -74,7 +93,7 @@ export default function Newsletter() {
                 />
                 <button 
                   type="submit" 
-                  className="h-full px-4 sm:px-8 bg-[#d96677] text-white rounded-full font-bold text-xs sm:text-sm hover:bg-[#c25565] transition-transform active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap shadow-sm"
+                  className="h-full px-4 sm:px-8 bg-[#d96677] text-white rounded-full font-bold text-xs sm:text-sm hover:bg-[#c25565] transition-transform active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap shadow-sm cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 ltr:-scale-x-100" />
                   <span>{t('newsletter.button')}</span>

@@ -1,22 +1,21 @@
 import Layout from '../../components/layout/Layout';
-import ProductCard from '../../components/products/ProductCard';
-import { useMockData } from '../../data/mockData';
 import { Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
-import { StaggerContainer, StaggerItem } from '../../components/ui/Stagger';
+import { useNavigate, Link } from 'react-router';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
+import ProductImage from '../../components/ui/ProductImage';
 
 export default function Favorites() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   // @ts-ignore
-const isRTL = i18n.dir() === 'rtl';
+  const isRTL = i18n.dir() === 'rtl';
   
-  // Just use a few products as mock favorites
-  const { favorites, toggleFavorite, addToCart } = useStore();
-  const favoriteProducts = favorites;
+  const favoriteProducts = useStore(state => state.favorites);
+  const removeFromFavorites = useStore(state => state.removeFromFavorites);
+  const addToCart = useStore(state => state.addToCart);
 
   return (
     <Layout>
@@ -26,7 +25,7 @@ const isRTL = i18n.dir() === 'rtl';
         {/* Background Image Container */}
         <div className="absolute inset-0 z-0">
           <img 
-            src="/images/backgrounds/products-hero.png" 
+            src="/images/backgrounds/products-hero.webp" 
             alt="Favorites Background"
             className="w-full h-full object-cover object-center rtl:scale-x-[-1]"
           />
@@ -66,31 +65,52 @@ const isRTL = i18n.dir() === 'rtl';
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-16 py-12">
           
           {favoriteProducts.length > 0 ? (
-            <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {favoriteProducts.map((product, idx) => (
-                <StaggerItem key={product.id + idx}>
-                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#e8dcd8] flex flex-col h-full">
-                    <img src={product.image} alt={product.name} className="w-full h-48 object-cover rounded-xl mb-4" />
-                    <h3 className="font-bold text-[#4a1c24] text-lg mb-2">{product.name}</h3>
-                    <p className="text-[#a0525f] font-bold mb-4">EGP {product.price}</p>
-                    <div className="mt-auto flex gap-2">
-                      <button 
-                        onClick={() => addToCart(product)}
-                        className="flex-1 bg-[#a0525f] text-white py-2 rounded-xl font-bold hover:bg-[#8e4551] transition-colors text-sm"
-                      >
-                        Add to Cart
-                      </button>
-                      <button 
-                        onClick={() => toggleFavorite(product)}
-                        className="px-3 border border-[#e8dcd8] text-[#4a1c24] py-2 rounded-xl font-bold hover:bg-[#fcf8f9] transition-colors text-sm"
-                      >
-                        Remove
-                      </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <AnimatePresence mode="popLayout">
+                {favoriteProducts.map((product) => (
+                  <motion.div 
+                    key={String(product.id)}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.2 } }}
+                    transition={{ duration: 0.25 }}
+                    className="h-full"
+                  >
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#e8dcd8] flex flex-col h-full hover:shadow-md transition-shadow">
+                      <div className="w-full h-48 rounded-xl overflow-hidden mb-4 bg-gray-50 relative group">
+                        <Link to={product.slug ? `/products/${product.slug}` : `/products/${product.id}`} className="block w-full h-full">
+                          <ProductImage 
+                            src={product.image} 
+                            alt={product.name} 
+                            className="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
+                            label={product.name}
+                          />
+                        </Link>
+                      </div>
+                      <Link to={product.slug ? `/products/${product.slug}` : `/products/${product.id}`}>
+                        <h3 className="font-bold text-[#4a1c24] text-lg mb-2 hover:text-[#a0525f] transition-colors truncate">{product.name}</h3>
+                      </Link>
+                      <p className="text-[#a0525f] font-bold mb-4">{t('common.egp', 'EGP')} {product.price}</p>
+                      <div className="mt-auto flex gap-2">
+                        <button 
+                          onClick={() => addToCart(product)}
+                          className="flex-1 bg-[#a0525f] text-white py-2 rounded-xl font-bold hover:bg-[#8e4551] transition-colors text-sm cursor-pointer shadow-sm"
+                        >
+                          {t('productsPage.addToCart', isRTL ? 'أضف للسلة' : 'Add to Cart')}
+                        </button>
+                        <button 
+                          onClick={() => removeFromFavorites(product.id)}
+                          className="px-3 border border-[#e8dcd8] text-[#4a1c24] py-2 rounded-xl font-bold hover:bg-[#fcf8f9] hover:border-[#a0525f]/40 hover:text-[#a0525f] transition-colors text-sm cursor-pointer"
+                        >
+                          {t('common.remove', isRTL ? 'إزالة' : 'Remove')}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </StaggerItem>
-              ))}
-            </StaggerContainer>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Heart className="w-24 h-24 text-[#e8dcd8] mb-6 stroke-[1]" />
